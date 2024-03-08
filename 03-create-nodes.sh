@@ -2,6 +2,8 @@
 
 . ./variables.sh
 
+rm -f $known_hosts
+
 for h in ${nodes}; do
 echo
 echo "Creating $h"
