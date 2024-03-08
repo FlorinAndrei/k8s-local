@@ -2,4 +2,4 @@ ca/*
 meta-data-*
 user-data-*
 known_hosts
-*.kubeconfig
+kubeconfig/*
