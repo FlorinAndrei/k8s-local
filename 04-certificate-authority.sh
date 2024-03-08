@@ -2,7 +2,11 @@
 
 . ./variables.sh
 
+echo
+echo "Deleting old CA:"
+echo
 rm -rf ca
+
 mkdir ca
 pushd ca
 
