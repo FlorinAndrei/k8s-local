@@ -33,6 +33,7 @@ for h in controller-0 controller-1 controller-2 worker-0 worker-1 worker-2; do
 echo "Destroying $h"
 virsh undefine $h
 done
+rm -f $known_hosts
 
 echo
 sleep 1
@@ -41,7 +42,6 @@ for h in controller-0 controller-1 controller-2 worker-0 worker-1 worker-2; do
 echo "Deleting $h root disk"
 sudo rm -rf /var/lib/libvirt/images/$h
 done
-rm -f $known_hosts
 
 sleep 1
 
