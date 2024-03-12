@@ -2,18 +2,19 @@
 
 . ./variables.sh
 
+wget --https-only -nc https://github.com/etcd-io/etcd/releases/download/v3.5.9/etcd-v3.5.9-linux-amd64.tar.gz
+
 for instance in ${controllers}; do
 
 instance_ip=${node_ip[$instance]}
 init_cluster_str="controller-0=https://${node_ip[controller-0]}:2380,controller-1=https://${node_ip[controller-1]}:2380,controller-2=https://${node_ip[controller-2]}:2380"
 
+scp $ssh_opts etcd-v3.5.9-linux-amd64.tar.gz $username@${node_ip[$instance]}:
 ssh $ssh_opts $username@${node_ip[$instance]} << ENDSSH
-wget -q --https-only -nc https://github.com/etcd-io/etcd/releases/download/v3.5.9/etcd-v3.5.9-linux-amd64.tar.gz
-
 tar -xvf etcd-v3.5.9-linux-amd64.tar.gz
 sudo mv etcd-v3.5.9-linux-amd64/etcd* /usr/local/bin/
 rm -rf etcd-v3.5.9-linux-amd64
-# rm -f etcd-v3.5.9-linux-amd64.tar.gz
+rm -f etcd-v3.5.9-linux-amd64.tar.gz
 
 sudo mkdir -p /etc/etcd /var/lib/etcd
 sudo chmod 700 /var/lib/etcd
@@ -82,3 +83,5 @@ sudo ETCDCTL_API=3 etcdctl member list \
 ENDSSH3
 
 done
+
+rm -f etcd-v3.5.9-linux-amd64.tar.gz
