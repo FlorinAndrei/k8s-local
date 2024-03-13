@@ -222,8 +222,8 @@ sudo systemctl start containerd kubelet kube-proxy
 ENDSSH7
 done
 
+rm -f crictl-v1.25.0-linux-amd64.tar.gz runc.amd64 cni-plugins-linux-amd64-v1.3.0.tgz containerd-1.6.24-linux-amd64.tar.gz kubectl kube-proxy kubelet
+
 ssh $ssh_opts $username@${node_ip["controller-0"]} << ENDSSH8
 kubectl get nodes --kubeconfig admin.kubeconfig
 ENDSSH8
-
-rm -f crictl-v1.25.0-linux-amd64.tar.gz runc.amd64 cni-plugins-linux-amd64-v1.3.0.tgz containerd-1.6.24-linux-amd64.tar.gz kubectl kube-proxy kubelet
