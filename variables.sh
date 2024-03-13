@@ -15,8 +15,9 @@ ssh_opts="-o StrictHostKeyChecking=no -o UserKnownHostsFile=$known_hosts -o Forw
 main_host_ip="192.168.1.20"
 # the main virtual network within the host
 private_net="192.168.122.0/24"
-# the IP range internal to Kubernetes
-cluster_cidr="10.200.0.0/16"
+# the IP range internal to Kubernetes (pod IPs)
+cluster_cidr_prefix="10.200"
+cluster_cidr="${cluster_cidr_prefix}.0.0/16"
 # IPs for internal cluster services
 service_cluster_ip_prefix="10.32.0"
 service_cluster_ip_range="${service_cluster_ip_prefix}.0/24"
@@ -26,8 +27,12 @@ workers="worker-0 worker-1 worker-2"
 nodes="${controllers} ${workers}"
 
 # bash maps must be declared with -A
+declare -A cluster_cidr_worker
+cluster_cidr_worker[worker-0]="${cluster_cidr_prefix}.0.0/24"
+cluster_cidr_worker[worker-1]="${cluster_cidr_prefix}.1.0/24"
+cluster_cidr_worker[worker-2]="${cluster_cidr_prefix}.2.0/24"
+
 declare -A node_ip
-# node IPs
 node_ip[controller-0]="192.168.122.100"
 node_ip[controller-1]="192.168.122.101"
 node_ip[controller-2]="192.168.122.102"
