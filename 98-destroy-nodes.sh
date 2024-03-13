@@ -46,7 +46,18 @@ done
 sleep 1
 
 echo
-echo "Final state:"
+echo "Deleting pod network routes:"
+echo
+
+sudo ip route del ${cluster_cidr_worker[worker-0]}
+sudo ip route del ${cluster_cidr_worker[worker-1]}
+sudo ip route del ${cluster_cidr_worker[worker-2]}
+
+echo
+sudo ip route
+
+echo
+echo "Final virtual network state:"
 echo
 
 virsh net-dumpxml default
