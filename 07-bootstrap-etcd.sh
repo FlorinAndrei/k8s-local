@@ -73,6 +73,10 @@ done
 
 sleep 1
 
+echo
+echo "Check the status of the etcd cluster:"
+echo
+
 for instance in ${controllers}; do
 ssh $ssh_opts $username@${node_ip[$instance]} << ENDSSH3
 sudo ETCDCTL_API=3 etcdctl member list \
