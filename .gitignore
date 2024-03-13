@@ -4,3 +4,4 @@ user-data-*
 known_hosts
 kubeconfig/*
 *.yaml
+*.cnf
