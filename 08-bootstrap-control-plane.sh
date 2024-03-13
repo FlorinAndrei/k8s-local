@@ -169,7 +169,7 @@ rm -f kubernetes.default.svc.cluster.local
 
 ssh $ssh_opts $username@${node_ip[$instance]} << ENDSSH5
 sudo apt-get update
-sudo apt-get install -y nginx
+sudo apt-get install -y nginx net-tools
 sudo cp kubernetes.default.svc.cluster.local /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
 sudo ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
 sudo systemctl enable nginx
@@ -178,6 +178,79 @@ ENDSSH5
 
 done
 
-# TODO: RBAC for Kubelet Authorization
+cat > cluster-role-create.yaml <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: system:kube-apiserver-to-kubelet
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes/proxy
+      - nodes/stats
+      - nodes/log
+      - nodes/spec
+      - nodes/metrics
+    verbs:
+      - "*"
+EOF
+
+cat > cluster-role-bind.yaml <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:kube-apiserver
+  namespace: ""
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kube-apiserver-to-kubelet
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: kubernetes
+EOF
+
+set -x
+scp $ssh_opts cluster-role-create.yaml $username@${node_ip["controller-0"]}:
+scp $ssh_opts cluster-role-bind.yaml $username@${node_ip["controller-0"]}:
+rm -f cluster-role-create.yaml cluster-role-bind.yaml
+set +x
+
+ssh $ssh_opts $username@${node_ip["controller-0"]} << ENDSSH6
+kubectl apply --kubeconfig admin.kubeconfig -f cluster-role-create.yaml
+kubectl apply --kubeconfig admin.kubeconfig -f cluster-role-bind.yaml
+ENDSSH6
+
+cat << EOF > haproxy-tail.cnf
+frontend k8s_lb
+        mode tcp
+        bind :6443
+        default_backend k8s_controllers
+
+backend k8s_controllers
+        mode tcp
+        option httpchk
+        http-check connect ssl alpn h2
+        http-check send meth GET uri /healthz ver HTTP/2 hdr Host www.test.local
+        http-check expect status 200
+        balance leastconn
+        server controller-0 ${node_ip[controller-0]}:6443 check verify none
+        server controller-1 ${node_ip[controller-1]}:6443 check verify none
+        server controller-2 ${node_ip[controller-2]}:6443 check verify none
+EOF
+
+echo
+echo "Examine the file haproxy-tail.cnf which I've just created."
+echo "If it looks good, then append it to /etc/haproxy/haproxy.cfg and restart HAProxy."
+echo "After that, you can check the control plane and the load balancer by running this command:"
+echo
+echo "curl --cacert ca/ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version"
+echo
 
 rm -f kube-apiserver kube-controller-manager kube-scheduler kubectl
