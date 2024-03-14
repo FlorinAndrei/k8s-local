@@ -90,14 +90,89 @@ sudo cp 10-bridge.conf /etc/cni/net.d/
 sudo cp 99-loopback.conf /etc/cni/net.d/
 ENDSSH4
 
+#cat << EOF > config.toml
+#[plugins]
+#  [plugins.cri.containerd]
+#    snapshotter = "overlayfs"
+#    [plugins.cri.containerd.default_runtime]
+#      runtime_type = "io.containerd.runtime.v1.linux"
+#      runtime_engine = "/usr/local/bin/runc"
+#      runtime_root = ""
+#EOF
+
 cat << EOF > config.toml
+version = 2
+root = "/var/lib/containerd"
+state = "/run/containerd"
+oom_score = 0
+# imports
+
+[grpc]
+  address = "/run/containerd/containerd.sock"
+  uid = 0
+  gid = 0
+  max_recv_message_size = 16777216
+  max_send_message_size = 16777216
+
+[debug]
+  address = ""
+  uid = 0
+  gid = 0
+  level = ""
+
+[metrics]
+  address = ""
+  grpc_histogram = false
+
+[cgroup]
+  path = ""
+
 [plugins]
-  [plugins.cri.containerd]
-    snapshotter = "overlayfs"
-    [plugins.cri.containerd.default_runtime]
-      runtime_type = "io.containerd.runtime.v1.linux"
-      runtime_engine = "/usr/local/bin/runc"
-      runtime_root = ""
+  [plugins."io.containerd.monitor.v1.cgroups"]
+    no_prometheus = false
+  [plugins."io.containerd.grpc.v1.cri"]
+    stream_server_address = ""
+    stream_server_port = "10010"
+    enable_selinux = false
+    sandbox_image = "registry.k8s.io/pause:3.9"
+    stats_collect_period = 10
+    enable_tls_streaming = false
+    max_container_log_line_size = 16384
+    restrict_oom_score_adj = false
+
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      discard_unpacked_layers = true
+      snapshotter = "overlayfs"
+      default_runtime_name = "runc"
+      [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
+        runtime_type = ""
+        runtime_engine = ""
+        runtime_root = ""
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/cni/bin"
+      conf_dir = "/etc/cni/net.d"
+      conf_template = ""
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+
+  [plugins."io.containerd.service.v1.diff-service"]
+    default = ["walking"]
+  [plugins."io.containerd.gc.v1.scheduler"]
+    pause_threshold = 0.02
+    deletion_threshold = 0
+    mutation_threshold = 100
+    schedule_delay = "0s"
+    startup_delay = "100ms"
+EOF
+
+cat << EOF > hosts.toml
+server = "https://registry-1.docker.io"
 EOF
 
 cat << EOF > containerd.service
@@ -122,12 +197,15 @@ LimitCORE=infinity
 WantedBy=multi-user.target
 EOF
 
-scp $ssh_opts config.toml containerd.service $username@${node_ip[$instance]}:
-rm -f config.toml containerd.service
+scp $ssh_opts config.toml containerd.service hosts.toml $username@${node_ip[$instance]}:
+rm -f config.toml containerd.service hosts.toml
 
 ssh $ssh_opts $username@${node_ip[$instance]} << ENDSSH5
-sudo mkdir -p /etc/containerd/
+sudo mkdir -p /etc/containerd/certs.d/docker.io/
+sudo mkdir -p /var/lib/containerd/
+sudo mkdir -p /run/containerd/
 sudo cp config.toml /etc/containerd/
+sudo cp hosts.toml /etc/containerd/certs.d/docker.io/
 sudo cp containerd.service /etc/systemd/system/
 
 sudo mv ${instance}-key.pem ${instance}.pem /var/lib/kubelet/
@@ -223,6 +301,8 @@ ENDSSH7
 done
 
 rm -f crictl-v1.25.0-linux-amd64.tar.gz runc.amd64 cni-plugins-linux-amd64-v1.3.0.tgz containerd-1.6.24-linux-amd64.tar.gz kubectl kube-proxy kubelet
+
+sleep 10
 
 ssh $ssh_opts $username@${node_ip["controller-0"]} << ENDSSH8
 kubectl get nodes --kubeconfig admin.kubeconfig
