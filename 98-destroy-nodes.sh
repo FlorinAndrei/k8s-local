@@ -46,13 +46,14 @@ done
 sleep 1
 
 echo
-echo "Deleting pod network routes:"
-echo
+echo "Deleting pod network routes..."
 
 sudo ip route del ${cluster_cidr_worker[worker-0]}
 sudo ip route del ${cluster_cidr_worker[worker-1]}
 sudo ip route del ${cluster_cidr_worker[worker-2]}
 
+echo
+echo "Current routes:"
 echo
 sudo ip route
 
@@ -61,3 +62,11 @@ echo "Final virtual network state:"
 echo
 
 virsh net-dumpxml default
+
+echo
+echo "Clean up kubectl config:"
+echo
+
+kubectl config delete-context kubernetes-the-hard-way
+kubectl config delete-cluster kubernetes-the-hard-way
+kubectl config delete-user admin-k8s-local
