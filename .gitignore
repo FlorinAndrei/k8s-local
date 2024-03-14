@@ -5,3 +5,4 @@ known_hosts
 kubeconfig/*
 encryption-config.yaml
 *.cnf
+*.swp
