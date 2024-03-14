@@ -3,5 +3,5 @@ meta-data-*
 user-data-*
 known_hosts
 kubeconfig/*
-*.yaml
+encryption-config.yaml
 *.cnf
