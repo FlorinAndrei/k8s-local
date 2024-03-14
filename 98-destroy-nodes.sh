@@ -67,6 +67,7 @@ echo
 echo "Clean up kubectl config:"
 echo
 
+kubectl config unset current-context
 kubectl config delete-context kubernetes-the-hard-way
 kubectl config delete-cluster kubernetes-the-hard-way
 kubectl config delete-user admin-k8s-local
